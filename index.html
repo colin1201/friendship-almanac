@@ -751,12 +751,86 @@
     .toast { transition: none; }
     .modal { transition: none; }
   }
+
+  /* ====== Login gate ====== */
+  .login-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 2rem;
+  }
+  .login-card {
+    max-width: 22rem;
+    width: 100%;
+    text-align: center;
+  }
+  .login-card h1 {
+    margin: 0 0 0.4rem;
+    font-size: var(--step-2);
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .login-card p {
+    margin: 0 0 1.5rem;
+    color: var(--ink-fade);
+    font-size: var(--step--1);
+  }
+  .login-card input[type="password"] {
+    width: 100%;
+    appearance: none;
+    border: 1px solid var(--border-strong);
+    background: var(--card);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    font-family: var(--sans);
+    font-size: var(--step-0);
+    color: var(--ink);
+    outline: none;
+    margin-bottom: 0.5rem;
+  }
+  .login-card input:focus { border-color: var(--ink); }
+  .login-card button {
+    width: 100%;
+    appearance: none;
+    background: var(--ink);
+    color: var(--card);
+    border: none;
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    font-family: var(--sans);
+    font-size: var(--step-0);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .login-card .err {
+    color: var(--overdue);
+    font-size: var(--step--1);
+    margin-top: 0.5rem;
+    min-height: 1.2rem;
+  }
 </style>
 </head>
 
 <body>
 
-<main class="page">
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <h1>Friendship Almanac</h1>
+    <p>private — colin.ng89@gmail.com</p>
+    <form id="loginForm">
+      <input type="password" id="pwInput" placeholder="password" autocomplete="current-password" autofocus />
+      <button type="submit">Open</button>
+      <div class="err" id="pwError"></div>
+    </form>
+  </div>
+</div>
+
+<main class="page" id="appContent" hidden>
   <header class="app-head">
     <div class="dateline" id="todayLabel">— · —</div>
     <h1 class="masthead">Who's due for a catchup?</h1>
@@ -1184,9 +1258,8 @@ function hideToast() {
 }
 
 function pushStatus(name, status) {
-  // Fire-and-forget GET via image beacon (no CORS hassles on file:// or hosted).
-  if (!APPS_SCRIPT_URL) return;
-  const url = `${APPS_SCRIPT_URL}?action=status&name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}&_=${Date.now()}`;
+  if (!APPS_SCRIPT_URL || !AUTH_TOKEN) return;
+  const url = withToken(`${APPS_SCRIPT_URL}?action=status&name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}&_=${Date.now()}`);
   new Image().src = url;
 }
 
@@ -1233,9 +1306,23 @@ document.addEventListener('click', e => {
 document.getElementById('mrtFilter').addEventListener('input', e => { mrtFilter = e.target.value.trim(); refresh(); });
 document.getElementById('searchInput').addEventListener('input', e => { search = e.target.value.trim(); refresh(); });
 
+/* ---- Auth ---- */
+// SHA-256 of the password "Mimosa123". Same password is sent to Apps Script as a token.
+const PASSWORD_HASH = '4a9ae32c72e96553687ba44a40eb95536c43744d3d00fa6e577a793e972d6e39';
+const STORAGE_KEY = 'fs_token';
+let AUTH_TOKEN = localStorage.getItem(STORAGE_KEY) || '';
+
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function withToken(url) {
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}token=${encodeURIComponent(AUTH_TOKEN)}`;
+}
+
 /* ---- Mobile add-meet form ---- */
-// Paste your deployed Apps Script Web App URL here (after running `Deploy → New deployment → Web app`).
-// Format: https://script.google.com/macros/s/AKfyc.../exec
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXnRnq0gxLfRGAaAIak9QBtAoNrcgEuuXQOI3atMUGjkryCAXjhXao-h1VYsITMZhcRA/exec';
 
 function openAddMeet() {
@@ -1283,7 +1370,7 @@ document.getElementById('addMeetForm').addEventListener('submit', e => {
     notes: data.get('notes') || '',
     energy: data.get('energy') || '',
   });
-  // Image-beacon GET — works even with no CORS configured (per side-projects CLAUDE.md)
+  params.set('token', AUTH_TOKEN);
   new Image().src = `${APPS_SCRIPT_URL}?${params.toString()}&_=${Date.now()}`;
   closeAddMeet();
   toast('Meet logged. Dashboard refreshing in a few seconds…');
@@ -1292,10 +1379,11 @@ document.getElementById('addMeetForm').addEventListener('submit', e => {
 
 /* ---- Boot ---- */
 async function loadFriends() {
-  if (APPS_SCRIPT_URL) {
+  if (APPS_SCRIPT_URL && AUTH_TOKEN) {
     try {
-      const res = await fetch(`${APPS_SCRIPT_URL}?action=read`);
+      const res = await fetch(withToken(`${APPS_SCRIPT_URL}?action=read`));
       const data = await res.json();
+      if (data.error) throw new Error(data.error);
       return { friends: data.friends || [], groups: data.groups || [] };
     } catch (err) {
       console.error('Live data fetch failed, falling back to mock', err);
@@ -1304,7 +1392,9 @@ async function loadFriends() {
   return { friends: MOCK, groups: MOCK_GROUPS };
 }
 
-(async function init() {
+async function bootApp() {
+  document.getElementById('loginScreen').remove();
+  document.getElementById('appContent').hidden = false;
   const { friends, groups } = await loadFriends();
   allRows = computeScores(friends, today);
   const groupStats = computeGroupStats(groups, today);
@@ -1323,6 +1413,30 @@ async function loadFriends() {
   const refreshedAt = new Intl.DateTimeFormat('en-SG', { hour: '2-digit', minute: '2-digit' }).format(new Date());
   document.getElementById('lastRefreshed').textContent = `refreshed ${refreshedAt}`;
   refresh();
+}
+
+// Verify any stored token before booting straight in
+async function tryAutoLogin() {
+  if (!AUTH_TOKEN) return false;
+  const hash = await sha256(AUTH_TOKEN);
+  return hash === PASSWORD_HASH;
+}
+
+(async function () {
+  if (await tryAutoLogin()) { bootApp(); return; }
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pw = document.getElementById('pwInput').value;
+    const hash = await sha256(pw);
+    if (hash === PASSWORD_HASH) {
+      AUTH_TOKEN = pw;
+      localStorage.setItem(STORAGE_KEY, pw);
+      bootApp();
+    } else {
+      document.getElementById('pwError').textContent = 'Wrong password.';
+      document.getElementById('pwInput').select();
+    }
+  });
 })();
 </script>
 </body>
