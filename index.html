@@ -1,0 +1,1329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#FAFAF8" />
+<title>Friends</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --bg:           #FAFAF8;
+    --card:         #FFFFFF;
+    --ink:          #18181B;
+    --ink-soft:     #3F3F46;
+    --ink-fade:     #71717A;
+    --ink-ghost:    #A1A1AA;
+    --border:       #E4E4E7;
+    --border-strong:#D4D4D8;
+    --overdue:      #B91C1C;
+    --overdue-bg:   #FEF2F2;
+    --drift:        #B45309;
+    --drift-bg:     #FFFBEB;
+    --good:         #15803D;
+    --owed:         #7C2D12;
+
+    --sans:         'IBM Plex Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --mono:         'IBM Plex Mono', ui-monospace, monospace;
+
+    --step--2: clamp(0.70rem, 0.66rem + 0.20vw, 0.78rem);
+    --step--1: clamp(0.82rem, 0.78rem + 0.20vw, 0.88rem);
+    --step-0:  clamp(0.94rem, 0.90rem + 0.20vw, 1.00rem);
+    --step-1:  clamp(1.06rem, 0.98rem + 0.40vw, 1.20rem);
+    --step-2:  clamp(1.30rem, 1.10rem + 1.00vw, 1.60rem);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--bg);
+    font-size: var(--step-0);
+    line-height: 1.55;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100dvh;
+  }
+  ::selection { background: var(--ink); color: var(--bg); }
+
+  .page {
+    max-width: 38rem;
+    margin: 0 auto;
+    padding: clamp(1.25rem, 4vw, 2.25rem) clamp(1rem, 4vw, 2rem) 6rem;
+  }
+
+  /* ====== Header ====== */
+  header.app-head {
+    margin-bottom: 1.5rem;
+  }
+  .dateline {
+    font-family: var(--mono);
+    font-size: var(--step--2);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-fade);
+    margin-bottom: 0.7rem;
+  }
+  .masthead {
+    margin: 0 0 0.35rem;
+    font-size: var(--step-2);
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+    line-height: 1.1;
+  }
+  .standfirst {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: var(--step-0);
+    line-height: 1.5;
+  }
+  .standfirst strong { font-weight: 600; color: var(--overdue); }
+
+  /* ====== Search ====== */
+  .search-row {
+    margin: 1.25rem 0 0.5rem;
+    position: relative;
+  }
+  .search {
+    width: 100%;
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--card);
+    border-radius: 8px;
+    padding: 0.7rem 0.85rem 0.7rem 2.3rem;
+    font-family: var(--sans);
+    font-size: var(--step-0);
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search:focus { border-color: var(--ink); }
+  .search::placeholder { color: var(--ink-ghost); }
+
+  /* ====== Rules box ====== */
+  .rules-box {
+    margin: 0.85rem 0 0.25rem;
+    padding: 0.5rem 0.85rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+  }
+  .rules-box summary {
+    cursor: pointer;
+    font-size: var(--step--2);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    color: var(--ink-fade);
+    padding: 0.2rem 0;
+    list-style: none;
+  }
+  .rules-box summary::-webkit-details-marker { display: none; }
+  .rules-box summary::before {
+    content: '▸ ';
+    display: inline-block;
+    transition: transform 0.15s;
+    color: var(--ink-ghost);
+  }
+  .rules-box[open] summary::before { transform: rotate(90deg); }
+  .rules-box ul { margin: 0.5rem 0 0.25rem; padding-left: 1.2rem; }
+  .rules-box li { margin-bottom: 0.35rem; line-height: 1.5; }
+  .rules-box strong { color: var(--ink); font-weight: 600; }
+  .rules-box code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    background: var(--bg);
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+  }
+  .search-row::before {
+    content: '';
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1rem;
+    height: 1rem;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%2371717A' stroke-width='1.5'><circle cx='7' cy='7' r='5'/><path d='M11 11l3 3' stroke-linecap='round'/></svg>");
+    background-repeat: no-repeat;
+  }
+
+  /* ====== Filter bar ====== */
+  .filter-bar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: 0.75rem 0;
+    margin: 0.75rem 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .pills {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .pill {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--ink-soft);
+    font-family: var(--sans);
+    font-size: var(--step--1);
+    font-weight: 500;
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    line-height: 1;
+  }
+  .pill:hover { color: var(--ink); border-color: var(--ink-soft); }
+  .pill[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--card);
+    border-color: var(--ink);
+  }
+  .pill .count {
+    margin-left: 0.35rem;
+    font-family: var(--mono);
+    font-size: 0.78em;
+    color: var(--ink-fade);
+  }
+  .pill[aria-pressed="true"] .count { color: var(--ink-ghost); }
+
+  .mrt-input {
+    flex: 1;
+    min-width: 9rem;
+    appearance: none;
+    border: 1px solid var(--border-strong);
+    background: var(--card);
+    border-radius: 999px;
+    font-family: var(--sans);
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+    padding: 0.45rem 0.85rem;
+    outline: none;
+  }
+  .mrt-input:focus { border-color: var(--ink); color: var(--ink); }
+  .mrt-input::placeholder { color: var(--ink-ghost); }
+
+  /* ====== Groups section ====== */
+  .groups-section {
+    margin: 1.25rem 0;
+    padding: 0.85rem 1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .groups-section h2 {
+    margin: 0 0 0.6rem;
+    font-family: var(--sans);
+    font-size: var(--step--1);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-fade);
+    font-weight: 600;
+  }
+  .group-line {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0;
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--border);
+  }
+  .group-line:last-child { border-bottom: 0; }
+  .group-line .gname {
+    flex: 1;
+    font-weight: 600;
+    color: var(--ink);
+    font-size: var(--step-0);
+  }
+  .group-line .gweeks {
+    font-family: var(--mono);
+    color: var(--ink-soft);
+    font-weight: 500;
+  }
+  .group-line.overdue .gweeks { color: var(--overdue); }
+  .group-line .gnote {
+    font-family: var(--mono);
+    font-size: var(--step--2);
+    color: var(--ink-ghost);
+  }
+
+  /* ====== Feed ====== */
+  .feed { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.95rem 1.1rem;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    position: relative;
+    opacity: 0;
+    transform: translateY(6px);
+    animation: rise 0.4s ease-out forwards;
+    animation-delay: calc(var(--i, 0) * 35ms + 50ms);
+  }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  .card:hover { border-color: var(--ink-fade); }
+  .card.overdue { border-left: 3px solid var(--overdue); padding-left: calc(1.1rem - 2px); }
+  .card.dormant { opacity: 0.6; background: var(--bg); }
+  .card.dormant .name::after {
+    content: 'dormant';
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-ghost);
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 0.18rem 0.45rem;
+    border-radius: 4px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+
+  .card .head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
+  }
+  .card .name {
+    flex: 1;
+    margin: 0;
+    font-size: var(--step-1);
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    text-transform: lowercase;
+    word-break: break-word;
+  }
+  .card .weeks-badge {
+    flex-shrink: 0;
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    font-weight: 500;
+    color: var(--ink-fade);
+    white-space: nowrap;
+  }
+  .card.overdue .weeks-badge { color: var(--overdue); font-weight: 600; }
+
+  .card .since {
+    margin: 0 0 0.4rem;
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+    line-height: 1.4;
+  }
+  .card .since .solo-stale {
+    color: var(--overdue);
+    font-weight: 500;
+  }
+
+  .card .marginalia {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
+    font-family: var(--mono);
+    font-size: var(--step--2);
+    color: var(--ink-fade);
+    margin-top: 0.25rem;
+    align-items: center;
+    line-height: 1.6;
+  }
+  .card .marginalia .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .card .marginalia .tag + .tag::before {
+    content: '·';
+    padding-right: 0.2rem;
+    color: var(--border-strong);
+  }
+
+  .card .marginalia .balance--they { color: var(--owed); font-weight: 500; }
+  .card .marginalia .balance--me { color: var(--good); }
+  .card .marginalia .balance--even { color: var(--ink-fade); }
+
+  .card .note {
+    margin: 0.55rem 0 0;
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+    line-height: 1.4;
+    padding: 0.45rem 0.7rem;
+    background: var(--bg);
+    border-radius: 6px;
+    border-left: 2px solid var(--border-strong);
+  }
+
+  /* Status tags */
+  .tag-drift {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--sans);
+    font-size: 0.66rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--drift);
+    background: var(--drift-bg);
+    padding: 0.18rem 0.45rem;
+    border-radius: 4px;
+    line-height: 1.2;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+  .tag-group-only {
+    font-family: var(--sans);
+    font-size: 0.66rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-fade);
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    padding: 0.16rem 0.45rem;
+    border-radius: 4px;
+    margin-left: 0.4rem;
+  }
+
+  .area-dot {
+    display: inline-block;
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    margin-right: 0.35rem;
+    background: var(--ink-ghost);
+    vertical-align: 1px;
+  }
+  .area-dot.north { background: #3B82F6; }
+  .area-dot.east { background: #F59E0B; }
+  .area-dot.west { background: #16A34A; }
+  .area-dot.central { background: #EF4444; }
+  .area-dot.northeast { background: #A855F7; }
+  .place-arrow { color: var(--border-strong); padding: 0 0.15rem; }
+
+  /* Expanded */
+  .card .more {
+    display: none;
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border);
+  }
+  .card.open .more { display: block; }
+
+  .card .more .label {
+    font-size: var(--step--2);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-fade);
+    margin-bottom: 0.3rem;
+    font-weight: 600;
+  }
+  .card .more p {
+    margin: 0 0 0.85rem;
+    font-size: var(--step-0);
+    color: var(--ink-soft);
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 0.75rem;
+    margin: 0.85rem 0;
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .initiator-block {
+    margin: 0.9rem 0;
+    padding: 0.7rem 0.85rem;
+    background: var(--bg);
+    border-radius: 6px;
+    border-left: 2px solid var(--border-strong);
+  }
+  .initiator-block .label { margin-bottom: 0.45rem; }
+  .initiator-detail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    align-items: baseline;
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+  }
+  .initiator-detail strong {
+    font-family: var(--mono);
+    color: var(--ink);
+    font-weight: 500;
+    font-size: var(--step-0);
+    margin-right: 0.2rem;
+  }
+  .initiator-verdict {
+    margin-top: 0.5rem;
+    font-style: italic;
+    font-size: var(--step--1);
+    color: var(--ink-fade);
+  }
+  .initiator-verdict.balance--they { color: var(--owed); font-style: normal; font-weight: 500; }
+  .initiator-verdict.balance--me { color: var(--good); font-style: normal; font-weight: 500; }
+  .initiator-pct {
+    color: var(--ink-ghost);
+    font-family: var(--mono);
+    font-size: 0.78em;
+    margin-left: 0.2rem;
+  }
+  .initiator-bar {
+    display: flex;
+    height: 6px;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 0.55rem;
+    background: var(--bg);
+  }
+  .initiator-bar .bar-them { background: #B45309; }
+  .initiator-bar .bar-me   { background: #15803D; }
+  .stat .stat-label {
+    font-size: var(--step--2);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-fade);
+    font-weight: 500;
+  }
+  .stat .stat-value {
+    font-family: var(--mono);
+    font-size: var(--step-1);
+    color: var(--ink);
+    font-weight: 500;
+    margin-top: 0.1rem;
+  }
+  .stat .stat-value small {
+    font-family: var(--sans);
+    font-size: var(--step--2);
+    color: var(--ink-fade);
+    font-weight: 400;
+    margin-left: 0.25rem;
+  }
+
+  .action-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
+  .action {
+    appearance: none;
+    background: var(--card);
+    color: var(--ink);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: var(--step--1);
+    font-weight: 500;
+    padding: 0.5rem 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .action:hover { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .action.danger { color: var(--overdue); border-color: #FCA5A5; }
+  .action.danger:hover { background: var(--overdue); color: var(--card); border-color: var(--overdue); }
+
+  .empty {
+    margin: 2rem 0;
+    text-align: center;
+    color: var(--ink-fade);
+    font-size: var(--step-0);
+  }
+
+  footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: var(--step--2);
+    color: var(--ink-ghost);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 1.5rem;
+    transform: translateX(-50%) translateY(120%);
+    background: var(--ink);
+    color: var(--card);
+    padding: 0.65rem 1rem;
+    font-size: var(--step--1);
+    font-weight: 500;
+    z-index: 99;
+    transition: transform 0.25s ease;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast .undo {
+    appearance: none;
+    background: transparent;
+    color: var(--card);
+    border: none;
+    text-decoration: underline;
+    font-family: var(--sans);
+    font-size: var(--step--1);
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+  }
+  .toast .undo:hover { color: #FCA5A5; }
+
+  /* ====== Floating Add button + Modal ====== */
+  .fab {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--card);
+    border: none;
+    font-size: 1.6rem;
+    font-weight: 300;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 50;
+    transition: transform 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    padding-bottom: 0.2rem;
+  }
+  .fab:hover { transform: scale(1.05); }
+  .fab:active { transform: scale(0.95); }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 90;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--card);
+    width: 100%;
+    max-width: 32rem;
+    border-radius: 16px 16px 0 0;
+    padding: 1.25rem 1.25rem 1.5rem;
+    max-height: 90dvh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .modal-backdrop.show .modal { transform: none; }
+
+  @media (min-width: 38rem) {
+    .modal-backdrop { align-items: center; }
+    .modal { border-radius: 12px; max-width: 28rem; }
+  }
+
+  .modal h2 {
+    margin: 0 0 0.25rem;
+    font-size: var(--step-1);
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .modal .modal-sub {
+    margin: 0 0 1.1rem;
+    color: var(--ink-fade);
+    font-size: var(--step--1);
+  }
+
+  .field {
+    margin-bottom: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .field-label {
+    font-size: var(--step--2);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-fade);
+    font-weight: 600;
+  }
+  .field input[type="text"],
+  .field input[type="date"],
+  .field textarea {
+    width: 100%;
+    appearance: none;
+    border: 1px solid var(--border-strong);
+    background: var(--card);
+    border-radius: 6px;
+    padding: 0.55rem 0.7rem;
+    font-family: var(--sans);
+    font-size: var(--step-0);
+    color: var(--ink);
+    outline: none;
+  }
+  .field input:focus, .field textarea:focus { border-color: var(--ink); }
+  .field textarea { resize: vertical; min-height: 4rem; font-family: var(--sans); }
+
+  .radio-group { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .radio-group label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: var(--step--1);
+    transition: all 0.1s;
+  }
+  .radio-group input[type="radio"] { accent-color: var(--ink); margin: 0; }
+  .radio-group label:has(input:checked) { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  .energy-buttons { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .energy-btn {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    padding: 0.45rem 0.85rem;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+    transition: all 0.1s;
+  }
+  .energy-btn[data-active="true"] {
+    background: var(--ink);
+    color: var(--card);
+    border-color: var(--ink);
+  }
+
+  .modal-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+  .modal-actions .primary {
+    flex: 1;
+    background: var(--ink);
+    color: var(--card);
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-family: var(--sans);
+    font-size: var(--step-0);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .modal-actions .primary:hover { background: var(--ink-soft); }
+  .modal-actions .secondary {
+    background: transparent;
+    color: var(--ink-soft);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 0.75rem 1.1rem;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: var(--step-0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card { animation: none; opacity: 1; transform: none; }
+    .toast { transition: none; }
+    .modal { transition: none; }
+  }
+</style>
+</head>
+
+<body>
+
+<main class="page">
+  <header class="app-head">
+    <div class="dateline" id="todayLabel">— · —</div>
+    <h1 class="masthead">Who's due for a catchup?</h1>
+    <p class="standfirst" id="standfirst">—</p>
+
+    <div class="search-row">
+      <input type="search" class="search" id="searchInput" placeholder="search a name" autocomplete="off" />
+    </div>
+
+    <details class="rules-box">
+      <summary>How this works (rules)</summary>
+      <ul>
+        <li><strong>Overdue</strong> — past 1.5× your usual cadence with this friend (e.g. you meet every 10 wks, last seen 16 wks ago). Red left border.</li>
+        <li><strong>Drifting</strong> — past 1.75× cadence AND at least 12 weeks gap. Amber pill next to name. Friends drift here when meets get noticeably late.</li>
+        <li><strong>Mostly group</strong> — fewer than 20% of meets with them were 1-on-1. Group-section tracks them; individual overdue only fires when a real solo pattern is being neglected.</li>
+        <li><strong>Group buddy</strong> — 20–50% of meets were solo. Mixed signal.</li>
+        <li><strong>Auto-hidden</strong> — no contact at all in 30+ months. Drops from feed silently. (Mark them dormant manually if you want them out sooner.)</li>
+        <li><strong>Closeness weighting</strong> — friends you've met more in the last 12 months rank higher in the list. Doesn't change the overdue flag, just the order.</li>
+        <li><strong>Cadence</strong> — <code>target_cadence_weeks</code> on the Friends tab is authoritative when filled in (any number, including 52). Leave the cell empty to use the learned cadence from your meet history (last 36 months when possible, else all-time).</li>
+      </ul>
+    </details>
+  </header>
+
+  <div class="filter-bar">
+    <div class="pills">
+      <button class="pill" data-filter="overdue" aria-pressed="true">Overdue <span class="count" id="countOverdue">0</span></button>
+      <button class="pill" data-filter="watching" aria-pressed="false">Watching <span class="count" id="countWatching">0</span></button>
+      <button class="pill" data-filter="all" aria-pressed="false">All <span class="count" id="countAll">0</span></button>
+      <button class="pill" data-filter="dormant" aria-pressed="false">Dormant <span class="count" id="countDormant">0</span></button>
+      <input type="search" class="mrt-input" id="mrtFilter" placeholder="any area or station" autocomplete="off" />
+    </div>
+  </div>
+
+  <section class="groups-section" id="groupsSection" hidden>
+    <h2>Groups</h2>
+    <div id="groupsList"></div>
+  </section>
+
+  <ol class="feed" id="feed"></ol>
+
+  <p class="empty" id="empty" hidden>No-one matches the current filter.</p>
+
+  <footer>
+    <span>colin.ng89@gmail.com · private</span>
+    <span id="lastRefreshed">—</span>
+  </footer>
+</main>
+
+<button class="fab" id="fabAdd" aria-label="Log a new meet">+</button>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h2>Log a meet</h2>
+    <p class="modal-sub">writes to Sheet1 — auto-syncs to dashboard</p>
+    <form id="addMeetForm">
+      <div class="field">
+        <span class="field-label">Date</span>
+        <input type="date" name="date" id="addDate" required>
+      </div>
+      <div class="field">
+        <span class="field-label">Who (comma-separated, or a group name)</span>
+        <input type="text" name="who" id="addWho" placeholder="e.g. vincent, or dinner dinner" autocomplete="off" required>
+      </div>
+      <div class="field">
+        <span class="field-label">Where</span>
+        <input type="text" name="where" placeholder="e.g. kf hse, mahjong">
+      </div>
+      <div class="field">
+        <span class="field-label">Initiator</span>
+        <div class="radio-group">
+          <label><input type="radio" name="initiator" value="me">me</label>
+          <label><input type="radio" name="initiator" value="them">them</label>
+          <label><input type="radio" name="initiator" value="mutual">mutual</label>
+        </div>
+      </div>
+      <div class="field">
+        <span class="field-label">Notes</span>
+        <textarea name="notes" placeholder="for groups: one line each, like 'eunice - had her promotion'"></textarea>
+      </div>
+      <div class="field">
+        <span class="field-label">Energy</span>
+        <div class="energy-buttons" id="energyBtns">
+          <button type="button" class="energy-btn" data-energy="⚡">⚡ drained</button>
+          <button type="button" class="energy-btn" data-energy="🙂">🙂 fine</button>
+          <button type="button" class="energy-btn" data-energy="✨">✨ energised</button>
+        </div>
+        <input type="hidden" name="energy" id="addEnergy">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="cancelAdd">Cancel</button>
+        <button type="submit" class="primary">Save meet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================================
+   Friend Suggester — Functional dashboard build.
+   Name-first hierarchy. Closeness-weighted ranking. 30-month auto-hide.
+   Group-only friends excluded from individual feed.
+   ============================================================================ */
+
+const today = new Date('2026-05-16'); // pinned for mock
+
+const AUTO_HIDE_AFTER_WEEKS = 130; // ~30 months
+const SOLO_RATIO_GROUP_ONLY = 0.2; // <20% solo = mostly group
+const SOLO_RATIO_MIXED = 0.5;      // 20-50% solo = group buddy
+const MIN_DRIFT_WEEKS = 12;        // never flag "drifting" within 3 months, regardless of cadence
+
+/* ---- MOCK (sample of 16; live data will have ~200). Includes solo_count + recent_meets_12m. ---- */
+// MOCK adds `firstSolo` so we can compute solo cadence per friend.
+const MOCK = [
+  { name: 'joa',       meets: 206, soloMeets: 200, recent12m: 30, avgWeeks: 2,  lastMeet: '2026-04-03', lastSolo: '2026-04-03', firstSolo: '2017-01-15', mrt_home: '',            mrt_work: 'pasir panjang',  home_area: '',         work_area: 'Central',   status: 'Active', them: 0,  me: 0,  lastLocation: 'Adidas',              lastNotes: '' },
+  { name: 'vincent',   meets: 52,  soloMeets: 6,   recent12m: 9,  avgWeeks: 9,  lastMeet: '2026-03-01', lastSolo: '2026-01-26', firstSolo: '2018-08-20', mrt_home: 'bidadari',    mrt_work: '',                home_area: 'Central',  work_area: '',          status: 'Active', them: 38, me: 14, lastLocation: 'Fernvale Glades',     lastNotes: 'Asked about his new flat' },
+  { name: 'jo-ann',    meets: 10,  soloMeets: 8,   recent12m: 1,  avgWeeks: 22, lastMeet: '2024-11-22', lastSolo: '2024-11-22', firstSolo: '2018-04-10', mrt_home: 'thomson',     mrt_work: '',                home_area: 'Central',  work_area: '',          status: 'Active', them: 6,  me: 2,  lastLocation: '',                    lastNotes: 'She was planning a Bali trip' },
+  { name: 'debrah',    meets: 41,  soloMeets: 30,  recent12m: 5,  avgWeeks: 10, lastMeet: '2026-02-27', lastSolo: '2026-02-27', firstSolo: '2017-03-05', mrt_home: 'queenstown',  mrt_work: 'kent ridge',      home_area: 'Central',  work_area: 'Central',   status: 'Active', them: 12, me: 29, lastLocation: 'Sharon Gavin hse',    lastNotes: '' },
+  { name: 'kf',        meets: 30,  soloMeets: 25,  recent12m: 6,  avgWeeks: 15, lastMeet: '2026-05-08', lastSolo: '2026-05-08', firstSolo: '2017-06-12', mrt_home: 'sengkang',    mrt_work: 'dhoby ghaut',     home_area: 'Northeast',work_area: 'Central',   status: 'Active', them: 12, me: 18, lastLocation: 'kf hse',              lastNotes: '' },
+  { name: 'gavin',     meets: 28,  soloMeets: 3,   recent12m: 4,  avgWeeks: 16, lastMeet: '2026-03-01', lastSolo: '2025-11-15', firstSolo: '2020-02-08', mrt_home: 'sengkang',    mrt_work: '',                home_area: 'Northeast',work_area: '',          status: 'Active', them: 22, me: 6,  lastLocation: 'Fernvale Glades',     lastNotes: '' },
+  // tauf: group-heavy. firstSolo Jul 2022 → solo cadence over 2 years for 3 meets ≈ every 50 wks. 95 wks since last solo > 75 → solo-overdue.
+  { name: 'tauf',      meets: 28,  soloMeets: 3,   recent12m: 3,  avgWeeks: 17, lastMeet: '2026-01-03', lastSolo: '2024-07-12', firstSolo: '2022-08-10', mrt_home: 'bukit panjang', mrt_work: 'botanic gardens', home_area: 'West',   work_area: 'Central',   status: 'Active', them: 5,  me: 23, lastLocation: 'Hockey',              lastNotes: '' },
+  { name: 'kevin',     meets: 27,  soloMeets: 4,   recent12m: 4,  avgWeeks: 17, lastMeet: '2026-01-26', lastSolo: '2025-08-07', firstSolo: '2020-05-22', mrt_home: 'clementi',    mrt_work: '',                home_area: 'West',     work_area: '',          status: 'Active', them: 18, me: 9,  lastLocation: 'Wembley',             lastNotes: '' },
+  // ws: 4 solo meets across many years → solo cadence very loose. 87 wks since last solo, but cadence ≈ 130 → not solo-overdue.
+  { name: 'ws',        meets: 26,  soloMeets: 4,   recent12m: 3,  avgWeeks: 19, lastMeet: '2026-01-03', lastSolo: '2024-09-20', firstSolo: '2017-01-25', mrt_home: 'tampines',    mrt_work: 'raffles place',   home_area: 'East',     work_area: 'Central',   status: 'Active', them: 4,  me: 22, lastLocation: 'Hockey',              lastNotes: '' },
+  { name: 'sharon',    meets: 26,  soloMeets: 3,   recent12m: 4,  avgWeeks: 16, lastMeet: '2026-03-01', lastSolo: '2025-12-04', firstSolo: '2020-09-12', mrt_home: 'sengkang',    mrt_work: '',                home_area: 'Northeast',work_area: '',          status: 'Active', them: 21, me: 5,  lastLocation: 'Fernvale Glades',     lastNotes: '' },
+  { name: 'jx(f)',     meets: 25,  soloMeets: 22,  recent12m: 7,  avgWeeks: 20, lastMeet: '2026-03-26', lastSolo: '2026-03-26', firstSolo: '2018-05-12', mrt_home: 'tiong bahru', mrt_work: '',                home_area: 'Central',  work_area: '',          status: 'Active', them: 4,  me: 21, lastLocation: 'online for career coaching', lastNotes: 'Career switch — to chase or settle?' },
+  { name: 'fern',      meets: 24,  soloMeets: 18,  recent12m: 3,  avgWeeks: 16, lastMeet: '2026-01-30', lastSolo: '2026-01-30', firstSolo: '2018-08-15', mrt_home: 'redhill',     mrt_work: 'dhoby ghaut',     home_area: 'Central',  work_area: 'Central',   status: 'Active', them: 8,  me: 16, lastLocation: '',                    lastNotes: '' },
+  { name: 'kevinpreet',meets: 22,  soloMeets: 12,  recent12m: 6,  avgWeeks: 21, lastMeet: '2026-03-13', lastSolo: '2026-03-13', firstSolo: '2017-08-10', mrt_home: 'whampoa',     mrt_work: 'newton',          home_area: 'Central',  work_area: 'Central',   status: 'Active', them: 14, me: 8,  lastLocation: 'his new hse',         lastNotes: 'New place near Whampoa' },
+  { name: 'vangu',     meets: 22,  soloMeets: 20,  recent12m: 0,  avgWeeks: 20, lastMeet: '2025-02-19', lastSolo: '2025-02-19', firstSolo: '2017-04-08', mrt_home: 'canberra',    mrt_work: 'somerset',        home_area: 'North',    work_area: 'Central',   status: 'Active', them: 3,  me: 19, lastLocation: '',                    lastNotes: '' },
+  { name: 'pete',      meets: 22,  soloMeets: 18,  recent12m: 4,  avgWeeks: 21, lastMeet: '2026-05-08', lastSolo: '2026-05-08', firstSolo: '2017-10-20', mrt_home: 'simei',       mrt_work: 'dhoby ghaut',     home_area: 'East',     work_area: 'Central',   status: 'Active', them: 12, me: 10, lastLocation: 'kf hse',              lastNotes: '' },
+  { name: 'gabriel',   meets: 21,  soloMeets: 19,  recent12m: 0,  avgWeeks: 22, lastMeet: '2025-05-05', lastSolo: '2025-05-05', firstSolo: '2017-02-14', mrt_home: 'geylang bahru', mrt_work: 'changi',         home_area: 'East',    work_area: 'East',      status: 'Active', them: 6,  me: 15, lastLocation: '',                    lastNotes: '' },
+];
+
+const MOCK_GROUPS = [
+  { name: 'Dinner Dinner', lastMeet: '2026-03-01', avgWeeks: 8,  totalMeets: 14 },
+  { name: 'Wembley',       lastMeet: '2026-01-26', avgWeeks: 12, totalMeets: 7 },
+  { name: 'Hockey',        lastMeet: '2026-01-03', avgWeeks: 12, totalMeets: 18 },
+];
+
+/* ---- Helpers ---- */
+function effectiveCadence(f) {
+  // target_cadence_weeks is authoritative when set (any number, including 52).
+  // Empty falls back to learned avg, then to 52 default.
+  const targetStr = String(f.target == null ? '' : f.target).trim();
+  const target = Number(targetStr);
+  const avg = +f.avgWeeks || 0;
+  if (targetStr !== '' && target > 0) return target;
+  if (avg > 0) return avg;
+  return 52;
+}
+
+function closenessWeight(recent) {
+  if (recent <= 0) return 0.3;
+  if (recent <= 2) return 0.6;
+  if (recent <= 5) return 0.9;
+  return 1.0;
+}
+
+function computeScores(friends, asOf) {
+  return friends
+    .filter(f => f.meets >= 3) // status filter applied at render-time so Dormant stays accessible
+    .map(f => {
+      const lastDate = new Date(f.lastMeet);
+      const daysSince = Math.floor((asOf - lastDate) / 86400000);
+      const weeksSince = +(daysSince / 7).toFixed(1);
+      const cadence = effectiveCadence(f);
+
+      const recent = +f.recent12m || 0;
+      const weight = closenessWeight(recent);
+      const baseScore = weeksSince / cadence;
+      const score = baseScore * weight;
+
+      const soloIso = f.lastSolo || f.lastMeet;
+      const soloDate = new Date(soloIso);
+      const soloDays = Math.floor((asOf - soloDate) / 86400000);
+      const soloWeeks = +(soloDays / 7).toFixed(1);
+      const soloIsStale = (soloWeeks - weeksSince) >= 8;
+
+      const soloRatio = f.meets > 0 ? (f.soloMeets || 0) / f.meets : 1;
+      const groupOnly = soloRatio < SOLO_RATIO_GROUP_ONLY;
+      const groupBuddy = !groupOnly && soloRatio < SOLO_RATIO_MIXED;
+
+      // Solo cadence (only meaningful with 3+ solo meets): how often Colin and friend usually do 1-on-1
+      let soloCadence = null;
+      if ((f.soloMeets || 0) >= 3 && f.firstSolo && f.lastSolo) {
+        const days = (new Date(f.lastSolo) - new Date(f.firstSolo)) / 86400000;
+        if (days > 0) soloCadence = Math.max(1, Math.round(days / 7 / ((f.soloMeets) - 1)));
+      }
+
+      // Overdue: uses raw cadence ratio (no closeness suppression), so a clearly-overdue friend
+      // still gets the red border even if you've not seen them recently overall.
+      let overdue;
+      if (groupOnly) {
+        overdue = (soloCadence !== null) && (soloWeeks > soloCadence * 1.5);
+      } else {
+        overdue = baseScore > 1.5;
+      }
+
+      // Drift: > 1.75x effective cadence (honors your target_cadence_weeks override).
+      const drift = (cadence > 0) && (weeksSince > 1.75 * cadence) && (weeksSince >= MIN_DRIFT_WEEKS);
+      const hidden = weeksSince > AUTO_HIDE_AFTER_WEEKS;
+
+      const balance = f.them - f.me;
+      const balanceLabel =
+        balance > 2 ? `they +${balance}` :
+        balance < -2 ? `you +${-balance}` :
+        (f.them + f.me > 5 ? 'even' : '');
+      const oweThem = balance > 2;
+
+      return {
+        ...f,
+        daysSince, weeksSince, baseScore, score, cadence, weight,
+        soloWeeks: Math.max(0, Math.floor(soloWeeks)),
+        soloIsStale, soloCadence,
+        weeksFloor: Math.max(0, Math.floor(weeksSince)),
+        overdue, drift, hidden,
+        groupOnly, groupBuddy,
+        balanceLabel, oweThem,
+        statusKey: String(f.status || 'Active').toLowerCase(),
+        balanceClass: balance > 2 ? 'they' : balance < -2 ? 'me' : 'even',
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+}
+
+function computeGroupStats(groups, asOf) {
+  return groups
+    .filter(g => g.lastMeet && g.totalMeets > 0)
+    .map(g => {
+      const lastDate = new Date(g.lastMeet);
+      const daysSince = Math.floor((asOf - lastDate) / 86400000);
+      const weeksSince = +(daysSince / 7).toFixed(1);
+      const score = weeksSince / (g.avgWeeks || 26);
+      return {
+        ...g,
+        daysSince, weeksSince,
+        weeksFloor: Math.max(0, Math.floor(weeksSince)),
+        overdue: score > 1.5,
+      };
+    }).sort((a, b) => b.weeksSince - a.weeksSince);
+}
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function formatDate(iso) {
+  const d = new Date(iso);
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function renderHead(overdueCount) {
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dateStr = `${days[today.getDay()]} · ${today.getDate()} ${MONTHS[today.getMonth()]} ${today.getFullYear()}`;
+  document.getElementById('todayLabel').textContent = dateStr;
+
+  const stand = document.getElementById('standfirst');
+  if (overdueCount === 0) {
+    stand.innerHTML = `Everyone's in good rhythm.`;
+  } else if (overdueCount === 1) {
+    stand.innerHTML = `<strong>1</strong> friend is overdue.`;
+  } else {
+    stand.innerHTML = `<strong>${overdueCount}</strong> friends overdue.`;
+  }
+}
+
+function renderGroups(groups) {
+  const section = document.getElementById('groupsSection');
+  const list = document.getElementById('groupsList');
+  if (groups.length === 0) { section.hidden = true; return; }
+  section.hidden = false;
+  list.innerHTML = groups.map(g => `
+    <div class="group-line ${g.overdue ? 'overdue' : ''}">
+      <span class="gname">${g.name}</span>
+      <span class="gweeks">${g.weeksFloor} wk</span>
+      <span class="gnote">every ${g.avgWeeks} · ${g.totalMeets}×</span>
+    </div>
+  `).join('');
+}
+
+function renderFeed(rows, filter, mrtFilter, search) {
+  const feed = document.getElementById('feed');
+  const empty = document.getElementById('empty');
+  let visible = rows.slice();
+
+  if (search) {
+    const s = search.toLowerCase();
+    visible = visible.filter(r => r.name.toLowerCase().includes(s));
+  }
+
+  // Dormant gets its own track: includes ALL Dormant friends (even ones auto-hidden by silence).
+  if (filter === 'dormant') {
+    visible = visible.filter(r => r.statusKey === 'dormant');
+  } else {
+    // Active-only filters: respect auto-hide.
+    visible = visible.filter(r => r.statusKey === 'active' && !r.hidden);
+    if (filter === 'overdue')      visible = visible.filter(r => r.overdue);
+    else if (filter === 'watching') visible = visible.filter(r => r.score > 0.8 && !r.overdue);
+  }
+
+  if (mrtFilter) {
+    const m = mrtFilter.toLowerCase();
+    visible = visible.filter(r =>
+      (r.mrt_home || '').toLowerCase().includes(m) ||
+      (r.mrt_work || '').toLowerCase().includes(m) ||
+      (r.home_area || '').toLowerCase().includes(m) ||
+      (r.work_area || '').toLowerCase().includes(m)
+    );
+  }
+
+  if (visible.length === 0) { feed.innerHTML = ''; empty.hidden = false; return; }
+  empty.hidden = true;
+
+  feed.innerHTML = visible.map((r, i) => {
+    const homeDot = r.home_area ? `<span class="area-dot ${r.home_area.toLowerCase()}"></span>` : '';
+    const workDot = r.work_area ? `<span class="area-dot ${r.work_area.toLowerCase()}"></span>` : '';
+    const home = r.mrt_home || '';
+    const work = r.mrt_work || '';
+    let placeTag = '';
+    if (home && work) placeTag = `<span class="tag">${homeDot}${home}<span class="place-arrow">→</span>${workDot}${work}</span>`;
+    else if (home) placeTag = `<span class="tag">${homeDot}${home}</span>`;
+    else if (work) placeTag = `<span class="tag">${workDot}${work} (work)</span>`;
+    else placeTag = `<span class="tag" style="color:var(--ink-ghost)">no location set</span>`;
+
+    const balance = r.balanceLabel
+      ? `<span class="tag balance--${r.balanceClass}">${r.balanceLabel}</span>`
+      : '';
+    const drift = r.drift ? `<span class="tag-drift">drifting</span>` : '';
+    const groupTag = r.groupOnly ? `<span class="tag-group-only">mostly group</span>`
+                    : r.groupBuddy ? `<span class="tag-group-only">group buddy</span>` : '';
+
+    return `
+      <li class="card ${r.overdue ? 'overdue' : ''} ${r.statusKey === 'dormant' ? 'dormant' : ''}" style="--i:${i}" data-name="${r.name}">
+        <div class="head">
+          <h3 class="name">${r.name}${drift}${groupTag}</h3>
+          <span class="weeks-badge">${r.weeksFloor} wk</span>
+        </div>
+        <p class="since">last seen ${formatDate(r.lastMeet)}${r.lastLocation ? ' · ' + r.lastLocation.toLowerCase() : ''}${r.soloIsStale ? ` <span class="solo-stale">· ${r.soloWeeks} wk since 1-on-1</span>` : ''}</p>
+        <div class="marginalia">
+          ${placeTag}
+          <span class="tag">${r.meets}× met</span>
+          <span class="tag">${r.groupOnly && r.soloCadence ? `solo every ${r.soloCadence} wk` : `every ${r.cadence} wk`}</span>
+          ${balance}
+        </div>
+        ${r.lastNotes ? `<p class="note">${r.lastNotes}</p>` : ''}
+        <div class="more">
+          <div class="label">Last meet</div>
+          <p>${formatDate(r.lastMeet)}${r.lastLocation ? ', ' + r.lastLocation.toLowerCase() : ''}.${r.lastNotes ? ' ' + r.lastNotes : ' No notes captured.'}</p>
+
+          <div class="initiator-block">
+            <div class="label">Who reaches out</div>
+            ${(() => {
+              const total = r.them + r.me;
+              if (total === 0) return `<div class="initiator-detail"><span class="initiator-verdict balance--even">no initiator data captured yet</span></div>`;
+              const themPct = Math.round(r.them / total * 100);
+              const mePct = 100 - themPct;
+              let verdict, vclass;
+              if (total < 4) { verdict = `small sample (${total} tracked)`; vclass = 'even'; }
+              else if (themPct >= 65) { verdict = `they reach out ${themPct}% of the time`; vclass = 'they'; }
+              else if (mePct >= 65) { verdict = `you reach out ${mePct}% of the time`; vclass = 'me'; }
+              else { verdict = `roughly even (${themPct}% them · ${mePct}% you)`; vclass = 'even'; }
+              return `
+                <div class="initiator-detail">
+                  <span><strong>${r.them}</strong> from them <small class="initiator-pct">${themPct}%</small></span>
+                  <span><strong>${r.me}</strong> from you <small class="initiator-pct">${mePct}%</small></span>
+                </div>
+                <div class="initiator-bar" aria-hidden="true">
+                  <div class="bar-them" style="width:${themPct}%"></div>
+                  <div class="bar-me"   style="width:${mePct}%"></div>
+                </div>
+                <div class="initiator-verdict balance--${vclass}">${verdict}</div>
+              `;
+            })()}
+          </div>
+
+          <div class="stat-row">
+            <div class="stat"><div class="stat-label">Met total</div><div class="stat-value">${r.meets}<small>times</small></div></div>
+            <div class="stat"><div class="stat-label">Cadence</div><div class="stat-value">${r.cadence}<small>weeks</small></div></div>
+            <div class="stat"><div class="stat-label">Last seen</div><div class="stat-value">${r.weeksFloor}<small>wks ago</small></div></div>
+            <div class="stat"><div class="stat-label">Recent 12m</div><div class="stat-value">${r.recent12m || 0}<small>meets</small></div></div>
+          </div>
+          <div class="action-row">
+            ${r.statusKey === 'dormant'
+              ? `<button class="action" data-act="restore" data-name="${r.name}">Restore to active</button>`
+              : `<button class="action danger" data-act="dormant" data-name="${r.name}">Mark dormant</button>`}
+          </div>
+        </div>
+      </li>
+    `;
+  }).join('');
+}
+
+/* ---- Wire up ---- */
+let allRows = [];
+let filter = 'overdue';
+let mrtFilter = '';
+let search = '';
+
+function refresh() {
+  renderFeed(allRows, filter, mrtFilter, search);
+  document.querySelectorAll('.pill').forEach(p => {
+    p.setAttribute('aria-pressed', p.dataset.filter === filter ? 'true' : 'false');
+  });
+}
+
+let toastTimer = null;
+let lastDormantAction = null; // { name, restore: fn }
+
+function toast(text, undoCallback) {
+  const t = document.getElementById('toast');
+  if (undoCallback) {
+    t.innerHTML = `<span>${text}</span><button class="undo">UNDO</button>`;
+    t.querySelector('.undo').addEventListener('click', () => {
+      undoCallback();
+      hideToast();
+    });
+  } else {
+    t.textContent = text;
+  }
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 5500);
+}
+function hideToast() {
+  document.getElementById('toast').classList.remove('show');
+}
+
+function pushStatus(name, status) {
+  // Fire-and-forget GET via image beacon (no CORS hassles on file:// or hosted).
+  if (!APPS_SCRIPT_URL) return;
+  const url = `${APPS_SCRIPT_URL}?action=status&name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}&_=${Date.now()}`;
+  new Image().src = url;
+}
+
+function markDormant(name) {
+  const idx = allRows.findIndex(r => r.name === name);
+  if (idx < 0) return;
+  const prev = allRows[idx].statusKey;
+  allRows[idx].statusKey = 'dormant';
+  refresh();
+  pushStatus(name, 'Dormant');
+  toast(`${name} marked dormant`, () => {
+    allRows[idx].statusKey = prev;
+    refresh();
+    pushStatus(name, prev === 'dormant' ? 'Dormant' : 'Active');
+    toast(`${name} restored`);
+  });
+}
+function restoreFriend(name) {
+  const idx = allRows.findIndex(r => r.name === name);
+  if (idx < 0) return;
+  allRows[idx].statusKey = 'active';
+  refresh();
+  pushStatus(name, 'Active');
+  toast(`${name} back to active`);
+}
+
+document.addEventListener('click', e => {
+  const pill = e.target.closest('.pill');
+  if (pill) { filter = pill.dataset.filter; refresh(); return; }
+  const action = e.target.closest('.action');
+  if (action) {
+    e.stopPropagation();
+    if (action.dataset.act === 'dormant') markDormant(action.dataset.name);
+    else if (action.dataset.act === 'restore') restoreFriend(action.dataset.name);
+    return;
+  }
+  const card = e.target.closest('.card');
+  if (card) {
+    document.querySelectorAll('.card.open').forEach(c => { if (c !== card) c.classList.remove('open'); });
+    card.classList.toggle('open');
+  }
+});
+
+document.getElementById('mrtFilter').addEventListener('input', e => { mrtFilter = e.target.value.trim(); refresh(); });
+document.getElementById('searchInput').addEventListener('input', e => { search = e.target.value.trim(); refresh(); });
+
+/* ---- Mobile add-meet form ---- */
+// Paste your deployed Apps Script Web App URL here (after running `Deploy → New deployment → Web app`).
+// Format: https://script.google.com/macros/s/AKfyc.../exec
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXnRnq0gxLfRGAaAIak9QBtAoNrcgEuuXQOI3atMUGjkryCAXjhXao-h1VYsITMZhcRA/exec';
+
+function openAddMeet() {
+  document.getElementById('addDate').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('addEnergy').value = '';
+  document.querySelectorAll('.energy-btn').forEach(b => b.dataset.active = 'false');
+  document.getElementById('addMeetForm').reset();
+  document.getElementById('addDate').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('modalBackdrop').classList.add('show');
+}
+function closeAddMeet() { document.getElementById('modalBackdrop').classList.remove('show'); }
+
+document.getElementById('fabAdd').addEventListener('click', openAddMeet);
+document.getElementById('cancelAdd').addEventListener('click', closeAddMeet);
+document.getElementById('modalBackdrop').addEventListener('click', e => {
+  if (e.target.id === 'modalBackdrop') closeAddMeet();
+});
+
+document.getElementById('energyBtns').addEventListener('click', e => {
+  const btn = e.target.closest('.energy-btn');
+  if (!btn) return;
+  const wasActive = btn.dataset.active === 'true';
+  document.querySelectorAll('.energy-btn').forEach(b => b.dataset.active = 'false');
+  if (!wasActive) {
+    btn.dataset.active = 'true';
+    document.getElementById('addEnergy').value = btn.dataset.energy;
+  } else {
+    document.getElementById('addEnergy').value = '';
+  }
+});
+
+document.getElementById('addMeetForm').addEventListener('submit', e => {
+  e.preventDefault();
+  if (!APPS_SCRIPT_URL) {
+    toast('Set APPS_SCRIPT_URL in index.html first');
+    return;
+  }
+  const data = new FormData(e.target);
+  const params = new URLSearchParams({
+    action: 'add',
+    date: data.get('date'),
+    who: data.get('who'),
+    where: data.get('where') || '',
+    initiator: data.get('initiator') || '',
+    notes: data.get('notes') || '',
+    energy: data.get('energy') || '',
+  });
+  // Image-beacon GET — works even with no CORS configured (per side-projects CLAUDE.md)
+  new Image().src = `${APPS_SCRIPT_URL}?${params.toString()}&_=${Date.now()}`;
+  closeAddMeet();
+  toast('Meet logged. Dashboard refreshing in a few seconds…');
+  setTimeout(() => location.reload(), 4000);
+});
+
+/* ---- Boot ---- */
+async function loadFriends() {
+  if (APPS_SCRIPT_URL) {
+    try {
+      const res = await fetch(`${APPS_SCRIPT_URL}?action=read`);
+      const data = await res.json();
+      return { friends: data.friends || [], groups: data.groups || [] };
+    } catch (err) {
+      console.error('Live data fetch failed, falling back to mock', err);
+    }
+  }
+  return { friends: MOCK, groups: MOCK_GROUPS };
+}
+
+(async function init() {
+  const { friends, groups } = await loadFriends();
+  allRows = computeScores(friends, today);
+  const groupStats = computeGroupStats(groups, today);
+
+  const activeRows = allRows.filter(r => r.statusKey === 'active' && !r.hidden);
+  const overdueCount  = activeRows.filter(r => r.overdue).length;
+  const watchingCount = activeRows.filter(r => r.score > 0.8 && !r.overdue).length;
+  const dormantCount  = allRows.filter(r => r.statusKey === 'dormant').length;
+  document.getElementById('countOverdue').textContent  = overdueCount;
+  document.getElementById('countWatching').textContent = watchingCount;
+  document.getElementById('countAll').textContent      = activeRows.length;
+  document.getElementById('countDormant').textContent  = dormantCount;
+  renderHead(overdueCount);
+  renderGroups(groupStats);
+
+  const refreshedAt = new Intl.DateTimeFormat('en-SG', { hour: '2-digit', minute: '2-digit' }).format(new Date());
+  document.getElementById('lastRefreshed').textContent = `refreshed ${refreshedAt}`;
+  refresh();
+})();
+</script>
+</body>
+</html>
