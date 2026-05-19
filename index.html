@@ -461,12 +461,59 @@
     border-left: 2px solid var(--border-strong);
   }
 
-  .groups-block {
+  .groups-block, .history-block {
     margin: 0.9rem 0;
     padding: 0.7rem 0.85rem;
     background: var(--bg);
     border-radius: 6px;
     border-left: 2px solid var(--border-strong);
+  }
+  .history {
+    list-style: none;
+    padding: 0;
+    margin: 0.25rem 0 0;
+  }
+  .history-item {
+    display: grid;
+    grid-template-columns: 6rem 1fr;
+    gap: 0.75rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px dotted var(--border);
+    font-size: var(--step--1);
+  }
+  .history-item:last-child { border-bottom: 0; }
+  .h-date {
+    font-family: var(--mono);
+    font-size: var(--step--2);
+    color: var(--ink-fade);
+    padding-top: 0.1rem;
+    white-space: nowrap;
+  }
+  .h-body { color: var(--ink-soft); line-height: 1.45; }
+  .h-group {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-fade);
+    background: var(--card);
+    border: 1px solid var(--border-strong);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    margin-right: 0.3rem;
+  }
+  .h-who { font-weight: 500; color: var(--ink); }
+  .h-loc { color: var(--ink-fade); }
+  .h-note {
+    margin-top: 0.3rem;
+    padding: 0.3rem 0.5rem;
+    background: var(--card);
+    border-radius: 4px;
+    border-left: 2px solid var(--border-strong);
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+    line-height: 1.4;
   }
   .groups-block .label { margin-bottom: 0.45rem; }
   .groups-chips {
@@ -1216,6 +1263,31 @@ function renderFeed(rows, filter, mrtFilter, search) {
             </div>
           </div>` : ''}
 
+          ${(() => {
+            const history = meetsForFriend(r.name, 5);
+            if (history.length === 0) return '';
+            return `
+              <div class="history-block">
+                <div class="label">Last ${history.length} meet${history.length === 1 ? '' : 's'}</div>
+                <ol class="history">
+                  ${history.map(h => {
+                    const note = noteForFriend(h.notes || '', r.name);
+                    const who = (h.friend_names || '').split(',').map(s => s.trim()).filter(s => s && s.toLowerCase() !== r.name.toLowerCase()).join(', ');
+                    return `
+                      <li class="history-item">
+                        <div class="h-date">${formatDate(h.date)}</div>
+                        <div class="h-body">
+                          ${h.group_name ? `<span class="h-group">${h.group_name}</span>` : (who ? `<span class="h-who">with ${who}</span>` : '<span class="h-who">1-on-1</span>')}
+                          ${h.location ? ` · <span class="h-loc">${h.location.toLowerCase()}</span>` : ''}
+                          ${note ? `<div class="h-note">${note}</div>` : ''}
+                        </div>
+                      </li>
+                    `;
+                  }).join('')}
+                </ol>
+              </div>`;
+          })()}
+
           <div class="initiator-block">
             <div class="label">Who reaches out</div>
             ${(() => {
@@ -1261,9 +1333,56 @@ function renderFeed(rows, filter, mrtFilter, search) {
 
 /* ---- Wire up ---- */
 let allRows = [];
+let allMeets = [];
+let allGroups = [];
 let filter = 'overdue';
 let mrtFilter = '';
 let search = '';
+
+// Find a friend's last N meets (solo + group). Returns sorted newest first.
+function meetsForFriend(name, limit = 5) {
+  const target = String(name).toLowerCase();
+  // Build group lookup
+  const groupMembers = {};
+  allGroups.forEach(g => {
+    const key = (g.name || '').toLowerCase();
+    if (!key) return;
+    groupMembers[key] = String(g.members || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  });
+  return allMeets.filter(m => {
+    const explicit = String(m.friend_names || '').toLowerCase().split(',').map(s => s.trim());
+    if (explicit.includes(target)) return true;
+    if (m.group_name) {
+      const mem = groupMembers[String(m.group_name).toLowerCase()] || [];
+      if (mem.includes(target)) return true;
+    }
+    return false;
+  }).slice(0, limit);
+}
+
+// Extract per-friend line from multi-line notes (e.g., "eunice - text")
+function noteForFriend(notes, friendName) {
+  if (!notes) return '';
+  const fn = String(friendName).toLowerCase().trim();
+  const lines = String(notes).split(/\r?\n/);
+  let anyMatched = false;
+  for (const line of lines) {
+    const m = line.match(/^\s*([^-]+?)\s*[-–—]\s*(.+)$/);
+    if (m) {
+      anyMatched = true;
+      if (m[1].trim().toLowerCase() === fn) return m[2].trim();
+    }
+  }
+  return anyMatched ? '' : notes;
+}
+
+function rebuildCounts() {
+  const activeRows = allRows.filter(r => r.statusKey === 'active' && !r.hidden);
+  document.getElementById('countOverdue').textContent  = activeRows.filter(r => r.overdue).length;
+  document.getElementById('countWatching').textContent = activeRows.filter(r => r.score > 0.8 && !r.overdue).length;
+  document.getElementById('countAll').textContent      = activeRows.length;
+  document.getElementById('countDormant').textContent  = allRows.filter(r => r.statusKey === 'dormant').length;
+}
 
 function refresh() {
   renderFeed(allRows, filter, mrtFilter, search);
@@ -1415,24 +1534,61 @@ document.getElementById('addMeetForm').addEventListener('submit', e => {
 });
 
 /* ---- Boot ---- */
+const CACHE_KEY = 'fs_cache_v2';
+
+function getCachedData() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+function setCachedData(data) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ data, fetchedAt: Date.now() }));
+  } catch {}
+}
+
+async function fetchLive() {
+  const res = await fetch(withToken(`${APPS_SCRIPT_URL}?action=read`));
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
 async function loadFriends() {
   if (APPS_SCRIPT_URL && AUTH_TOKEN) {
+    const cached = getCachedData();
+    if (cached && cached.data) {
+      // Render cached immediately; fetch fresh in background
+      fetchLive().then(fresh => {
+        setCachedData(fresh);
+        // Re-render with fresh data
+        allMeets = fresh.meets || [];
+        allGroups = fresh.groups || [];
+        allRows = computeScores(fresh.friends || [], today);
+        rebuildCounts();
+        refresh();
+      }).catch(err => console.error('Background refresh failed', err));
+      return { friends: cached.data.friends || [], groups: cached.data.groups || [], meets: cached.data.meets || [], fromCache: true };
+    }
     try {
-      const res = await fetch(withToken(`${APPS_SCRIPT_URL}?action=read`));
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      return { friends: data.friends || [], groups: data.groups || [] };
+      const fresh = await fetchLive();
+      setCachedData(fresh);
+      return { friends: fresh.friends || [], groups: fresh.groups || [], meets: fresh.meets || [] };
     } catch (err) {
       console.error('Live data fetch failed, falling back to mock', err);
     }
   }
-  return { friends: MOCK, groups: MOCK_GROUPS };
+  return { friends: MOCK, groups: MOCK_GROUPS, meets: [] };
 }
 
 async function bootApp() {
   document.getElementById('loginScreen').remove();
   document.getElementById('appContent').hidden = false;
-  const { friends, groups } = await loadFriends();
+  const { friends, groups, meets } = await loadFriends();
+  allMeets = meets || [];
+  allGroups = groups || [];
   allRows = computeScores(friends, today);
   const groupStats = computeGroupStats(groups, today);
 
