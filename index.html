@@ -505,6 +505,35 @@
   }
   .h-who { font-weight: 500; color: var(--ink); }
   .h-loc { color: var(--ink-fade); }
+  .h-kind { font-size: var(--step--2); margin-right: 0.2rem; }
+  .h-kind-update {
+    font-weight: 600;
+    color: var(--drift);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .about-block {
+    margin: 0 0 0.6rem;
+    padding: 0.7rem 0.85rem;
+    background: var(--drift-bg);
+    border-radius: 6px;
+    border-left: 2px solid var(--drift);
+  }
+  .about-block .label { margin-bottom: 0.3rem; }
+  .about-text {
+    margin: 0;
+    font-size: var(--step-0);
+    color: var(--ink);
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+  .how-met {
+    margin: 0 0 0.7rem;
+    font-size: var(--step--1);
+    color: var(--ink-fade);
+    font-style: italic;
+  }
   .h-note {
     margin-top: 0.3rem;
     padding: 0.3rem 0.5rem;
@@ -717,6 +746,34 @@
   @media (min-width: 38rem) {
     .modal-backdrop { align-items: center; }
     .modal { border-radius: 12px; max-width: 28rem; }
+  }
+
+  .mode-toggle {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+    background: var(--bg);
+    padding: 0.3rem;
+    border-radius: 10px;
+  }
+  .mode-btn {
+    flex: 1;
+    appearance: none;
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    padding: 0.6rem;
+    font-family: var(--sans);
+    font-size: var(--step-0);
+    font-weight: 600;
+    color: var(--ink-fade);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .mode-btn[aria-pressed="true"] {
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   }
 
   .modal h2 {
@@ -957,16 +1014,21 @@
 
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal" role="dialog" aria-modal="true">
-    <h2>Log a meet</h2>
-    <p class="modal-sub">writes to Sheet1 — auto-syncs to dashboard</p>
+    <div class="mode-toggle" id="modeToggle">
+      <button type="button" class="mode-btn" data-mode="meet" aria-pressed="true">🤝 Met up</button>
+      <button type="button" class="mode-btn" data-mode="update" aria-pressed="false">💬 Update</button>
+    </div>
+
+    <!-- MEET form -->
     <form id="addMeetForm">
+      <p class="modal-sub">writes to Sheet1 — counts toward catchup cadence</p>
       <div class="field">
         <span class="field-label">Date</span>
-        <input type="date" name="date" id="addDate" required>
+        <input type="date" name="date" id="addDate">
       </div>
       <div class="field">
         <span class="field-label">Who (comma-separated, or a group name)</span>
-        <input type="text" name="who" id="addWho" placeholder="e.g. vincent, or dinner dinner" autocomplete="off" required>
+        <input type="text" name="who" id="addWho" placeholder="e.g. vincent, or dinner dinner" autocomplete="off">
       </div>
       <div class="field">
         <span class="field-label">Where</span>
@@ -998,6 +1060,31 @@
         <button type="submit" class="primary">Save meet</button>
       </div>
     </form>
+
+    <!-- UPDATE form -->
+    <form id="addUpdateForm" hidden>
+      <p class="modal-sub">info learned without meeting — shows in their profile, doesn't change overdue</p>
+      <div class="field">
+        <span class="field-label">Date</span>
+        <input type="date" name="date" id="upDate">
+      </div>
+      <div class="field">
+        <span class="field-label">Friend (one name)</span>
+        <input type="text" name="friend" id="upFriend" placeholder="e.g. vincent" autocomplete="off">
+      </div>
+      <div class="field">
+        <span class="field-label">What's the news</span>
+        <textarea name="note" id="upNote" placeholder="e.g. broke up with his gf; starting a new job in June"></textarea>
+      </div>
+      <div class="field">
+        <span class="field-label">Source (optional)</span>
+        <input type="text" name="source" placeholder="e.g. texted, instagram, heard from kf">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="cancelUpdate">Cancel</button>
+        <button type="submit" class="primary">Save update</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -1021,8 +1108,8 @@ const MIN_DRIFT_WEEKS = 12;        // never flag "drifting" within 3 months, reg
 // MOCK adds `firstSolo` so we can compute solo cadence per friend.
 const MOCK = [
   { name: 'joa',       meets: 206, soloMeets: 200, recent12m: 30, avgWeeks: 2,  lastMeet: '2026-04-03', lastSolo: '2026-04-03', firstSolo: '2017-01-15', mrt_home: '',            mrt_work: 'pasir panjang',  home_area: '',         work_area: 'Central',   status: 'Active', them: 0,  me: 0,  lastLocation: 'Adidas',              lastNotes: '' },
-  { name: 'vincent',   meets: 52,  soloMeets: 6,   recent12m: 9,  avgWeeks: 9,  lastMeet: '2026-03-01', lastSolo: '2026-01-26', firstSolo: '2018-08-20', mrt_home: 'bidadari',    mrt_work: '',                home_area: 'Central',  work_area: '',          status: 'Active', them: 38, me: 14, lastLocation: 'Fernvale Glades',     lastNotes: 'Asked about his new flat' },
-  { name: 'jo-ann',    meets: 10,  soloMeets: 8,   recent12m: 1,  avgWeeks: 22, lastMeet: '2024-11-22', lastSolo: '2024-11-22', firstSolo: '2018-04-10', mrt_home: 'thomson',     mrt_work: '',                home_area: 'Central',  work_area: '',          status: 'Active', them: 6,  me: 2,  lastLocation: '',                    lastNotes: 'She was planning a Bali trip' },
+  { name: 'vincent',   meets: 52,  soloMeets: 6,   recent12m: 9,  avgWeeks: 9,  lastMeet: '2026-03-01', lastSolo: '2026-01-26', firstSolo: '2018-08-20', mrt_home: 'bidadari',    mrt_work: '',                home_area: 'Central',  work_area: '',          status: 'Active', them: 38, me: 14, lastLocation: 'Fernvale Glades',     lastNotes: 'Asked about his new flat', memberOf: ['Wembley','Dinner Dinner'], about: 'works in tech. allergic to shellfish. wife Sue.', how_we_met: 'jc classmate' },
+  { name: 'jo-ann',    meets: 10,  soloMeets: 8,   recent12m: 1,  avgWeeks: 22, lastMeet: '2024-11-22', lastSolo: '2024-11-22', firstSolo: '2018-04-10', mrt_home: 'thomson',     mrt_work: '',                home_area: 'Central',  work_area: '',          status: 'Active', them: 6,  me: 2,  lastLocation: '',                    lastNotes: 'She was planning a Bali trip', about: '', how_we_met: 'uni hall' },
   { name: 'debrah',    meets: 41,  soloMeets: 30,  recent12m: 5,  avgWeeks: 10, lastMeet: '2026-02-27', lastSolo: '2026-02-27', firstSolo: '2017-03-05', mrt_home: 'queenstown',  mrt_work: 'kent ridge',      home_area: 'Central',  work_area: 'Central',   status: 'Active', them: 12, me: 29, lastLocation: 'Sharon Gavin hse',    lastNotes: '' },
   { name: 'kf',        meets: 30,  soloMeets: 25,  recent12m: 6,  avgWeeks: 15, lastMeet: '2026-05-08', lastSolo: '2026-05-08', firstSolo: '2017-06-12', mrt_home: 'sengkang',    mrt_work: 'dhoby ghaut',     home_area: 'Northeast',work_area: 'Central',   status: 'Active', them: 12, me: 18, lastLocation: 'kf hse',              lastNotes: '' },
   { name: 'gavin',     meets: 28,  soloMeets: 3,   recent12m: 4,  avgWeeks: 16, lastMeet: '2026-03-01', lastSolo: '2025-11-15', firstSolo: '2020-02-08', mrt_home: 'sengkang',    mrt_work: '',                home_area: 'Northeast',work_area: '',          status: 'Active', them: 22, me: 6,  lastLocation: 'Fernvale Glades',     lastNotes: '' },
@@ -1041,9 +1128,22 @@ const MOCK = [
 ];
 
 const MOCK_GROUPS = [
-  { name: 'Dinner Dinner', lastMeet: '2026-03-01', avgWeeks: 8,  totalMeets: 14 },
-  { name: 'Wembley',       lastMeet: '2026-01-26', avgWeeks: 12, totalMeets: 7 },
-  { name: 'Hockey',        lastMeet: '2026-01-03', avgWeeks: 12, totalMeets: 18 },
+  { name: 'Dinner Dinner', members: 'vincent, munching, gavin, sharon', lastMeet: '2026-03-01', avgWeeks: 8,  totalMeets: 14 },
+  { name: 'Wembley',       members: 'vincent, kevin, eunice, munching', lastMeet: '2026-01-26', avgWeeks: 12, totalMeets: 7 },
+  { name: 'Hockey',        members: 'martin, kevinpreet, ws, tauf',     lastMeet: '2026-01-03', avgWeeks: 12, totalMeets: 18 },
+];
+
+const MOCK_MEETS = [
+  { date: '2026-03-01', friend_names: '', group_name: 'Dinner Dinner', location: 'Fernvale Glades', notes: '', initiator: 'them', energy: '🙂' },
+  { date: '2026-01-26', friend_names: 'vincent', group_name: '', location: 'tiong bahru', notes: 'talked about his new flat reno', initiator: 'me', energy: '✨' },
+  { date: '2025-11-10', friend_names: 'vincent, joa', group_name: '', location: 'their place', notes: '', initiator: 'them', energy: '' },
+  { date: '2024-11-22', friend_names: 'jo-ann', group_name: '', location: 'her house', notes: 'planning a Bali trip', initiator: 'them', energy: '🙂' },
+];
+
+const MOCK_UPDATES = [
+  { date: '2026-04-20', friend: 'vincent', note: 'broke up with his gf — be sensitive next time', source: 'texted', id: 'u1' },
+  { date: '2026-02-14', friend: 'vincent', note: 'started a new job at a fintech', source: 'instagram', id: 'u2' },
+  { date: '2026-03-30', friend: 'jo-ann', note: 'got engaged!', source: 'heard from kf', id: 'u3' },
 ];
 
 /* ---- Helpers ---- */
@@ -1252,37 +1352,55 @@ function renderFeed(rows, filter, mrtFilter, search) {
         </div>
         ${r.lastNotes ? `<p class="note">${r.lastNotes}</p>` : ''}
         <div class="more">
-          <div class="label">Last meet</div>
-          <p>${formatDate(r.lastMeet)}${r.lastLocation ? ', ' + r.lastLocation.toLowerCase() : ''}.${r.lastNotes ? ' ' + r.lastNotes : ' No notes captured.'}</p>
+          ${r.about ? `
+          <div class="about-block">
+            <div class="label">About</div>
+            <p class="about-text">${escapeHtml(r.about)}</p>
+          </div>` : ''}
+
+          ${r.how_we_met ? `<p class="how-met">↳ how we met: ${escapeHtml(r.how_we_met)}</p>` : ''}
+
+          <div class="action-row" style="margin-bottom:0.6rem">
+            <button class="action" data-act="add-update" data-name="${r.name}">+ Log update</button>
+          </div>
 
           ${(r.memberOf && r.memberOf.length > 0) ? `
           <div class="groups-block">
             <div class="label">Member of</div>
             <div class="groups-chips">
-              ${r.memberOf.map(g => `<span class="group-chip">${g}</span>`).join('')}
+              ${r.memberOf.map(g => `<span class="group-chip">${escapeHtml(g)}</span>`).join('')}
             </div>
           </div>` : ''}
 
           ${(() => {
-            const history = meetsForFriend(r.name, 5);
-            if (history.length === 0) return '';
+            const timeline = timelineForFriend(r.name, 8);
+            if (timeline.length === 0) return '';
             return `
               <div class="history-block">
-                <div class="label">Last ${history.length} meet${history.length === 1 ? '' : 's'}</div>
+                <div class="label">Timeline · latest first</div>
                 <ol class="history">
-                  ${history.map(h => {
-                    const note = noteForFriend(h.notes || '', r.name);
+                  ${timeline.map(h => {
+                    if (h.kind === 'update') {
+                      return `
+                        <li class="history-item">
+                          <div class="h-date">${formatDate(h.date)}</div>
+                          <div class="h-body">
+                            <span class="h-kind h-kind-update">💬 update</span>${h.source ? ` <span class="h-loc">${escapeHtml(h.source.toLowerCase())}</span>` : ''}
+                            ${h.text ? `<div class="h-note">${escapeHtml(h.text)}</div>` : ''}
+                          </div>
+                        </li>`;
+                    }
                     const who = (h.friend_names || '').split(',').map(s => s.trim()).filter(s => s && s.toLowerCase() !== r.name.toLowerCase()).join(', ');
                     return `
                       <li class="history-item">
                         <div class="h-date">${formatDate(h.date)}</div>
                         <div class="h-body">
-                          ${h.group_name ? `<span class="h-group">${h.group_name}</span>` : (who ? `<span class="h-who">with ${who}</span>` : '<span class="h-who">1-on-1</span>')}
-                          ${h.location ? ` · <span class="h-loc">${h.location.toLowerCase()}</span>` : ''}
-                          ${note ? `<div class="h-note">${note}</div>` : ''}
+                          <span class="h-kind h-kind-meet">🤝</span>
+                          ${h.group_name ? `<span class="h-group">${escapeHtml(h.group_name)}</span>` : (who ? `<span class="h-who">with ${escapeHtml(who)}</span>` : '<span class="h-who">1-on-1</span>')}
+                          ${h.location ? ` · <span class="h-loc">${escapeHtml(h.location.toLowerCase())}</span>` : ''}
+                          ${h.text ? `<div class="h-note">${escapeHtml(h.text)}</div>` : ''}
                         </div>
-                      </li>
-                    `;
+                      </li>`;
                   }).join('')}
                 </ol>
               </div>`;
@@ -1335,21 +1453,21 @@ function renderFeed(rows, filter, mrtFilter, search) {
 let allRows = [];
 let allMeets = [];
 let allGroups = [];
+let allUpdates = [];
 let filter = 'overdue';
 let mrtFilter = '';
 let search = '';
 
-// Find a friend's last N meets (solo + group). Returns sorted newest first.
-function meetsForFriend(name, limit = 5) {
+// Find a friend's meets (solo + group). Returns sorted newest first.
+function meetsForFriend(name, limit = 0) {
   const target = String(name).toLowerCase();
-  // Build group lookup
   const groupMembers = {};
   allGroups.forEach(g => {
     const key = (g.name || '').toLowerCase();
     if (!key) return;
     groupMembers[key] = String(g.members || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   });
-  return allMeets.filter(m => {
+  const out = allMeets.filter(m => {
     const explicit = String(m.friend_names || '').toLowerCase().split(',').map(s => s.trim());
     if (explicit.includes(target)) return true;
     if (m.group_name) {
@@ -1357,7 +1475,43 @@ function meetsForFriend(name, limit = 5) {
       if (mem.includes(target)) return true;
     }
     return false;
-  }).slice(0, limit);
+  });
+  return limit > 0 ? out.slice(0, limit) : out;
+}
+
+// Standalone updates logged for a friend (matched by exact name, case-insensitive).
+function updatesForFriend(name) {
+  const target = String(name).toLowerCase().trim();
+  return allUpdates.filter(u => String(u.friend || '').toLowerCase().trim() === target);
+}
+
+// Merged timeline: meets + updates for a friend, newest first.
+function timelineForFriend(name, limit = 0) {
+  const meetItems = meetsForFriend(name).map(m => ({
+    kind: 'meet',
+    date: m.date,
+    group_name: m.group_name || '',
+    friend_names: m.friend_names || '',
+    location: m.location || '',
+    text: noteForFriend(m.notes || '', name),
+  }));
+  const updateItems = updatesForFriend(name).map(u => ({
+    kind: 'update',
+    date: u.date,
+    source: u.source || '',
+    text: u.note || '',
+  }));
+  const all = meetItems.concat(updateItems)
+    .filter(x => x.date)
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  return limit > 0 ? all.slice(0, limit) : all;
+}
+
+// Escape user-supplied text before inserting via innerHTML
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 // Extract per-friend line from multi-line notes (e.g., "eunice - text")
@@ -1450,6 +1604,7 @@ document.addEventListener('click', e => {
     e.stopPropagation();
     if (action.dataset.act === 'dormant') markDormant(action.dataset.name);
     else if (action.dataset.act === 'restore') restoreFriend(action.dataset.name);
+    else if (action.dataset.act === 'add-update') { openAddMeet(action.dataset.name); setMode('update'); }
     return;
   }
   const card = e.target.closest('.card');
@@ -1481,18 +1636,37 @@ function withToken(url) {
 /* ---- Mobile add-meet form ---- */
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXnRnq0gxLfRGAaAIak9QBtAoNrcgEuuXQOI3atMUGjkryCAXjhXao-h1VYsITMZhcRA/exec';
 
-function openAddMeet() {
-  document.getElementById('addDate').value = new Date().toISOString().slice(0, 10);
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
+function setMode(mode) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === mode ? 'true' : 'false'));
+  document.getElementById('addMeetForm').hidden = (mode !== 'meet');
+  document.getElementById('addUpdateForm').hidden = (mode !== 'update');
+}
+
+function openAddMeet(prefillFriend) {
+  document.getElementById('addMeetForm').reset();
+  document.getElementById('addUpdateForm').reset();
   document.getElementById('addEnergy').value = '';
   document.querySelectorAll('.energy-btn').forEach(b => b.dataset.active = 'false');
-  document.getElementById('addMeetForm').reset();
-  document.getElementById('addDate').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('addDate').value = todayISO();
+  document.getElementById('upDate').value = todayISO();
+  if (prefillFriend) {
+    document.getElementById('addWho').value = prefillFriend;
+    document.getElementById('upFriend').value = prefillFriend;
+  }
+  setMode('meet');
   document.getElementById('modalBackdrop').classList.add('show');
 }
 function closeAddMeet() { document.getElementById('modalBackdrop').classList.remove('show'); }
 
-document.getElementById('fabAdd').addEventListener('click', openAddMeet);
+document.getElementById('fabAdd').addEventListener('click', () => openAddMeet());
 document.getElementById('cancelAdd').addEventListener('click', closeAddMeet);
+document.getElementById('cancelUpdate').addEventListener('click', closeAddMeet);
+document.getElementById('modeToggle').addEventListener('click', e => {
+  const btn = e.target.closest('.mode-btn');
+  if (btn) setMode(btn.dataset.mode);
+});
 document.getElementById('modalBackdrop').addEventListener('click', e => {
   if (e.target.id === 'modalBackdrop') closeAddMeet();
 });
@@ -1512,11 +1686,11 @@ document.getElementById('energyBtns').addEventListener('click', e => {
 
 document.getElementById('addMeetForm').addEventListener('submit', e => {
   e.preventDefault();
-  if (!APPS_SCRIPT_URL) {
-    toast('Set APPS_SCRIPT_URL in index.html first');
+  const data = new FormData(e.target);
+  if (!data.get('date') || !String(data.get('who') || '').trim()) {
+    toast('Date and who are required');
     return;
   }
-  const data = new FormData(e.target);
   const params = new URLSearchParams({
     action: 'add',
     date: data.get('date'),
@@ -1529,7 +1703,30 @@ document.getElementById('addMeetForm').addEventListener('submit', e => {
   params.set('token', AUTH_TOKEN);
   new Image().src = `${APPS_SCRIPT_URL}?${params.toString()}&_=${Date.now()}`;
   closeAddMeet();
-  toast('Meet logged. Dashboard refreshing in a few seconds…');
+  toast('Meet logged. Refreshing in a few seconds…');
+  setTimeout(() => location.reload(), 4000);
+});
+
+document.getElementById('addUpdateForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const data = new FormData(e.target);
+  const friend = String(data.get('friend') || '').trim();
+  const note = String(data.get('note') || '').trim();
+  if (!friend || !note) {
+    toast('Friend and note are required');
+    return;
+  }
+  const params = new URLSearchParams({
+    action: 'add_update',
+    date: data.get('date') || todayISO(),
+    friend: friend,
+    note: note,
+    source: data.get('source') || '',
+  });
+  params.set('token', AUTH_TOKEN);
+  new Image().src = `${APPS_SCRIPT_URL}?${params.toString()}&_=${Date.now()}`;
+  closeAddMeet();
+  toast('Update logged. Refreshing in a few seconds…');
   setTimeout(() => location.reload(), 4000);
 });
 
@@ -1566,29 +1763,31 @@ async function loadFriends() {
         // Re-render with fresh data
         allMeets = fresh.meets || [];
         allGroups = fresh.groups || [];
+        allUpdates = fresh.updates || [];
         allRows = computeScores(fresh.friends || [], today);
         rebuildCounts();
         refresh();
       }).catch(err => console.error('Background refresh failed', err));
-      return { friends: cached.data.friends || [], groups: cached.data.groups || [], meets: cached.data.meets || [], fromCache: true };
+      return { friends: cached.data.friends || [], groups: cached.data.groups || [], meets: cached.data.meets || [], updates: cached.data.updates || [], fromCache: true };
     }
     try {
       const fresh = await fetchLive();
       setCachedData(fresh);
-      return { friends: fresh.friends || [], groups: fresh.groups || [], meets: fresh.meets || [] };
+      return { friends: fresh.friends || [], groups: fresh.groups || [], meets: fresh.meets || [], updates: fresh.updates || [] };
     } catch (err) {
       console.error('Live data fetch failed, falling back to mock', err);
     }
   }
-  return { friends: MOCK, groups: MOCK_GROUPS, meets: [] };
+  return { friends: MOCK, groups: MOCK_GROUPS, meets: MOCK_MEETS, updates: MOCK_UPDATES };
 }
 
 async function bootApp() {
   document.getElementById('loginScreen').remove();
   document.getElementById('appContent').hidden = false;
-  const { friends, groups, meets } = await loadFriends();
+  const { friends, groups, meets, updates } = await loadFriends();
   allMeets = meets || [];
   allGroups = groups || [];
+  allUpdates = updates || [];
   allRows = computeScores(friends, today);
   const groupStats = computeGroupStats(groups, today);
 
