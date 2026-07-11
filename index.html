@@ -1279,7 +1279,7 @@ function renderGroups(groups) {
   section.hidden = false;
   list.innerHTML = groups.map(g => `
     <div class="group-line ${g.overdue ? 'overdue' : ''}">
-      <span class="gname">${g.name}</span>
+      <span class="gname">${escapeHtml(g.name)}</span>
       <span class="gweeks">${g.weeksFloor} wk</span>
       <span class="gnote">every ${g.avgWeeks} · ${g.totalMeets}×</span>
     </div>
@@ -1320,10 +1320,10 @@ function renderFeed(rows, filter, mrtFilter, search) {
   empty.hidden = true;
 
   feed.innerHTML = visible.map((r, i) => {
-    const homeDot = r.home_area ? `<span class="area-dot ${r.home_area.toLowerCase()}"></span>` : '';
-    const workDot = r.work_area ? `<span class="area-dot ${r.work_area.toLowerCase()}"></span>` : '';
-    const home = r.mrt_home || '';
-    const work = r.mrt_work || '';
+    const homeDot = r.home_area ? `<span class="area-dot ${escapeHtml(r.home_area.toLowerCase())}"></span>` : '';
+    const workDot = r.work_area ? `<span class="area-dot ${escapeHtml(r.work_area.toLowerCase())}"></span>` : '';
+    const home = escapeHtml(r.mrt_home || '');
+    const work = escapeHtml(r.mrt_work || '');
     let placeTag = '';
     if (home && work) placeTag = `<span class="tag">${homeDot}${home}<span class="place-arrow">→</span>${workDot}${work}</span>`;
     else if (home) placeTag = `<span class="tag">${homeDot}${home}</span>`;
@@ -1338,19 +1338,19 @@ function renderFeed(rows, filter, mrtFilter, search) {
                     : r.groupBuddy ? `<span class="tag-group-only">group buddy</span>` : '';
 
     return `
-      <li class="card ${r.overdue ? 'overdue' : ''} ${r.statusKey === 'dormant' ? 'dormant' : ''}" style="--i:${i}" data-name="${r.name}">
+      <li class="card ${r.overdue ? 'overdue' : ''} ${r.statusKey === 'dormant' ? 'dormant' : ''}" style="--i:${i}" data-name="${escapeHtml(r.name)}">
         <div class="head">
-          <h3 class="name">${r.name}${drift}${groupTag}</h3>
+          <h3 class="name">${escapeHtml(r.name)}${drift}${groupTag}</h3>
           <span class="weeks-badge">${r.weeksFloor} wk</span>
         </div>
-        <p class="since">last seen ${formatDate(r.lastMeet)}${r.lastLocation ? ' · ' + r.lastLocation.toLowerCase() : ''}${r.soloIsStale ? ` <span class="solo-stale">· ${r.soloWeeks} wk since 1-on-1</span>` : ''}</p>
+        <p class="since">last seen ${formatDate(r.lastMeet)}${r.lastLocation ? ' · ' + escapeHtml(r.lastLocation.toLowerCase()) : ''}${r.soloIsStale ? ` <span class="solo-stale">· ${r.soloWeeks} wk since 1-on-1</span>` : ''}</p>
         <div class="marginalia">
           ${placeTag}
           <span class="tag">${r.meets}× met</span>
           <span class="tag">${r.groupOnly && r.soloCadence ? `solo every ${r.soloCadence} wk` : `every ${r.cadence} wk`}</span>
           ${balance}
         </div>
-        ${r.lastNotes ? `<p class="note">${r.lastNotes}</p>` : ''}
+        ${r.lastNotes ? `<p class="note">${escapeHtml(r.lastNotes)}</p>` : ''}
         <div class="more">
           ${r.about ? `
           <div class="about-block">
@@ -1361,7 +1361,7 @@ function renderFeed(rows, filter, mrtFilter, search) {
           ${r.how_we_met ? `<p class="how-met">↳ how we met: ${escapeHtml(r.how_we_met)}</p>` : ''}
 
           <div class="action-row" style="margin-bottom:0.6rem">
-            <button class="action" data-act="add-update" data-name="${r.name}">+ Log update</button>
+            <button class="action" data-act="add-update" data-name="${escapeHtml(r.name)}">+ Log update</button>
           </div>
 
           ${(r.memberOf && r.memberOf.length > 0) ? `
@@ -1440,8 +1440,8 @@ function renderFeed(rows, filter, mrtFilter, search) {
           </div>
           <div class="action-row">
             ${r.statusKey === 'dormant'
-              ? `<button class="action" data-act="restore" data-name="${r.name}">Restore to active</button>`
-              : `<button class="action danger" data-act="dormant" data-name="${r.name}">Mark dormant</button>`}
+              ? `<button class="action" data-act="restore" data-name="${escapeHtml(r.name)}">Restore to active</button>`
+              : `<button class="action danger" data-act="dormant" data-name="${escapeHtml(r.name)}">Mark dormant</button>`}
           </div>
         </div>
       </li>
@@ -1468,11 +1468,13 @@ function meetsForFriend(name, limit = 0) {
     groupMembers[key] = String(g.members || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   });
   const out = allMeets.filter(m => {
-    const explicit = String(m.friend_names || '').toLowerCase().split(',').map(s => s.trim());
-    if (explicit.includes(target)) return true;
+    // Explicit friend_names is authoritative (partial group attendance: only those
+    // listed were there). Group membership only counts when no names are listed.
+    const explicit = String(m.friend_names || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+    if (explicit.length > 0) return explicit.includes(target);
     if (m.group_name) {
       const mem = groupMembers[String(m.group_name).toLowerCase()] || [];
-      if (mem.includes(target)) return true;
+      return mem.includes(target);
     }
     return false;
   });
@@ -1567,10 +1569,22 @@ function hideToast() {
   document.getElementById('toast').classList.remove('show');
 }
 
+// All writes go through fetch so the backend's JSON answer is actually read —
+// a failed save shows an error instead of silently pretending it worked.
+async function apiCall(params) {
+  const p = new URLSearchParams(params);
+  p.set('token', AUTH_TOKEN);
+  p.set('_', String(Date.now()));
+  const res = await fetch(`${APPS_SCRIPT_URL}?${p.toString()}`);
+  const data = await res.json();
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
+
 function pushStatus(name, status) {
   if (!APPS_SCRIPT_URL || !AUTH_TOKEN) return;
-  const url = withToken(`${APPS_SCRIPT_URL}?action=status&name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}&_=${Date.now()}`);
-  new Image().src = url;
+  apiCall({ action: 'status', name, status })
+    .catch(err => toast(`Couldn't save ${name} → ${status}: ${err.message}`));
 }
 
 function markDormant(name) {
@@ -1618,7 +1632,8 @@ document.getElementById('mrtFilter').addEventListener('input', e => { mrtFilter 
 document.getElementById('searchInput').addEventListener('input', e => { search = e.target.value.trim(); refresh(); });
 
 /* ---- Auth ---- */
-// SHA-256 of the password "Mimosa123". Same password is sent to Apps Script as a token.
+// SHA-256 hash of the app password (plaintext lives only in Code.gs, never in this
+// public file). On rotation: update APP_PASSWORD in Code.gs + this hash together.
 const PASSWORD_HASH = '1d707811988069ca760826861d6d63a10e8c3b7f171c4441a6472ea58c11711b';
 const STORAGE_KEY = 'fs_token';
 let AUTH_TOKEN = localStorage.getItem(STORAGE_KEY) || '';
@@ -1684,50 +1699,67 @@ document.getElementById('energyBtns').addEventListener('click', e => {
   }
 });
 
-document.getElementById('addMeetForm').addEventListener('submit', e => {
+document.getElementById('addMeetForm').addEventListener('submit', async e => {
   e.preventDefault();
-  const data = new FormData(e.target);
+  const form = e.target;
+  const data = new FormData(form);
   if (!data.get('date') || !String(data.get('who') || '').trim()) {
     toast('Date and who are required');
     return;
   }
-  const params = new URLSearchParams({
-    action: 'add',
-    date: data.get('date'),
-    who: data.get('who'),
-    where: data.get('where') || '',
-    initiator: data.get('initiator') || '',
-    notes: data.get('notes') || '',
-    energy: data.get('energy') || '',
-  });
-  params.set('token', AUTH_TOKEN);
-  new Image().src = `${APPS_SCRIPT_URL}?${params.toString()}&_=${Date.now()}`;
-  closeAddMeet();
-  toast('Meet logged. Refreshing in a few seconds…');
-  setTimeout(() => location.reload(), 4000);
+  const btn = form.querySelector('.primary');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await apiCall({
+      action: 'add',
+      date: data.get('date'),
+      who: data.get('who'),
+      where: data.get('where') || '',
+      initiator: data.get('initiator') || '',
+      notes: data.get('notes') || '',
+      energy: data.get('energy') || '',
+    });
+    // Programmatic writes don't fire the sheet's auto-sync trigger — sync explicitly.
+    btn.textContent = 'Syncing…';
+    await apiCall({ action: 'sync' });
+    closeAddMeet();
+    await reloadLive();
+    toast('Meet logged ✓');
+  } catch (err) {
+    toast(`Save failed: ${err.message}`);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save meet';
+  }
 });
 
-document.getElementById('addUpdateForm').addEventListener('submit', e => {
+document.getElementById('addUpdateForm').addEventListener('submit', async e => {
   e.preventDefault();
-  const data = new FormData(e.target);
+  const form = e.target;
+  const data = new FormData(form);
   const friend = String(data.get('friend') || '').trim();
   const note = String(data.get('note') || '').trim();
   if (!friend || !note) {
     toast('Friend and note are required');
     return;
   }
-  const params = new URLSearchParams({
-    action: 'add_update',
-    date: data.get('date') || todayISO(),
-    friend: friend,
-    note: note,
-    source: data.get('source') || '',
-  });
-  params.set('token', AUTH_TOKEN);
-  new Image().src = `${APPS_SCRIPT_URL}?${params.toString()}&_=${Date.now()}`;
-  closeAddMeet();
-  toast('Update logged. Refreshing in a few seconds…');
-  setTimeout(() => location.reload(), 4000);
+  const btn = form.querySelector('.primary');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await apiCall({
+      action: 'add_update',
+      date: data.get('date') || todayISO(),
+      friend: friend,
+      note: note,
+      source: data.get('source') || '',
+    });
+    closeAddMeet();
+    await reloadLive();
+    toast('Update logged ✓');
+  } catch (err) {
+    toast(`Save failed: ${err.message}`);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save update';
+  }
 });
 
 /* ---- Boot ---- */
@@ -1753,58 +1785,53 @@ async function fetchLive() {
   return data;
 }
 
-async function loadFriends() {
-  if (APPS_SCRIPT_URL && AUTH_TOKEN) {
-    const cached = getCachedData();
-    if (cached && cached.data) {
-      // Render cached immediately; fetch fresh in background
-      fetchLive().then(fresh => {
-        setCachedData(fresh);
-        // Re-render with fresh data
-        allMeets = fresh.meets || [];
-        allGroups = fresh.groups || [];
-        allUpdates = fresh.updates || [];
-        allRows = computeScores(fresh.friends || [], today);
-        rebuildCounts();
-        refresh();
-      }).catch(err => console.error('Background refresh failed', err));
-      return { friends: cached.data.friends || [], groups: cached.data.groups || [], meets: cached.data.meets || [], updates: cached.data.updates || [], fromCache: true };
-    }
-    try {
-      const fresh = await fetchLive();
-      setCachedData(fresh);
-      return { friends: fresh.friends || [], groups: fresh.groups || [], meets: fresh.meets || [], updates: fresh.updates || [] };
-    } catch (err) {
-      console.error('Live data fetch failed, falling back to mock', err);
-    }
-  }
-  return { friends: MOCK, groups: MOCK_GROUPS, meets: MOCK_MEETS, updates: MOCK_UPDATES };
+// Single render path: every data arrival (cache, live fetch, post-save refresh) goes
+// through here so the headline, counts, groups AND cards always update together.
+function applyData(data) {
+  allMeets = data.meets || [];
+  allGroups = data.groups || [];
+  allUpdates = data.updates || [];
+  allRows = computeScores(data.friends || [], today);
+  const activeRows = allRows.filter(r => r.statusKey === 'active' && !r.hidden);
+  rebuildCounts();
+  renderHead(activeRows.filter(r => r.overdue).length);
+  renderGroups(computeGroupStats(allGroups, today));
+  refresh();
+}
+
+function stampRefreshed(label) {
+  const t = new Intl.DateTimeFormat('en-SG', { hour: '2-digit', minute: '2-digit' }).format(new Date());
+  document.getElementById('lastRefreshed').textContent = `${label || 'refreshed'} ${t}`;
+}
+
+async function reloadLive() {
+  const fresh = await fetchLive();
+  setCachedData(fresh);
+  applyData(fresh);
+  stampRefreshed();
 }
 
 async function bootApp() {
   document.getElementById('loginScreen').remove();
   document.getElementById('appContent').hidden = false;
-  const { friends, groups, meets, updates } = await loadFriends();
-  allMeets = meets || [];
-  allGroups = groups || [];
-  allUpdates = updates || [];
-  allRows = computeScores(friends, today);
-  const groupStats = computeGroupStats(groups, today);
-
-  const activeRows = allRows.filter(r => r.statusKey === 'active' && !r.hidden);
-  const overdueCount  = activeRows.filter(r => r.overdue).length;
-  const watchingCount = activeRows.filter(r => r.score > 0.8 && !r.overdue).length;
-  const dormantCount  = allRows.filter(r => r.statusKey === 'dormant').length;
-  document.getElementById('countOverdue').textContent  = overdueCount;
-  document.getElementById('countWatching').textContent = watchingCount;
-  document.getElementById('countAll').textContent      = activeRows.length;
-  document.getElementById('countDormant').textContent  = dormantCount;
-  renderHead(overdueCount);
-  renderGroups(groupStats);
-
-  const refreshedAt = new Intl.DateTimeFormat('en-SG', { hour: '2-digit', minute: '2-digit' }).format(new Date());
-  document.getElementById('lastRefreshed').textContent = `refreshed ${refreshedAt}`;
-  refresh();
+  if (APPS_SCRIPT_URL && AUTH_TOKEN) {
+    const cached = getCachedData();
+    if (cached && cached.data) {
+      // Render cached immediately; fetch fresh in background
+      applyData(cached.data);
+      stampRefreshed('cached ·');
+      reloadLive().catch(err => console.error('Background refresh failed', err));
+      return;
+    }
+    try {
+      await reloadLive();
+      return;
+    } catch (err) {
+      console.error('Live data fetch failed, falling back to mock', err);
+    }
+  }
+  applyData({ friends: MOCK, groups: MOCK_GROUPS, meets: MOCK_MEETS, updates: MOCK_UPDATES });
+  stampRefreshed('mock data ·');
 }
 
 // Verify any stored token before booting straight in
